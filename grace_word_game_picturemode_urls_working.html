@@ -1,0 +1,206 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Grace's Word Game</title>
+  <style>
+    body {
+      font-family: 'Arial Rounded MT Bold', 'Segoe UI', sans-serif;
+      background-color: #fff0f5;
+      text-align: center;
+      padding: 20px;
+    }
+    .scrambled-word {
+      font-size: 3em;
+      margin: 20px;
+      padding: 10px 20px;
+      border-radius: 15px;
+      background: #ff69b4;
+      color: white;
+      display: inline-block;
+      letter-spacing: 10px;
+    }
+    canvas {
+      border: 3px solid #999;
+      background-color: #fff;
+      margin: 10px auto;
+      touch-action: none;
+    }
+    .button {
+      background-color: #ff69b4;
+      color: white;
+      font-size: 1.2em;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 20px;
+      margin: 10px;
+      cursor: pointer;
+    }
+    #celebration {
+      display: none;
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      background: rgba(255,255,255,0.9);
+      z-index: 999;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+    .confetti {
+      font-size: 4em;
+      animation: float 1.5s ease-in-out;
+    }
+    @keyframes float {
+      0% { transform: scale(1); opacity: 1; }
+      100% { transform: scale(2); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <h1>🎤 Grace's Word Game</h1>
+  <div style="margin-bottom: 10px;">
+    <label for="mode">Mode:</label>
+    <select id="mode" onchange="nextWord()">
+      <option value="scrambled">Scrambled Words</option>
+      <option value="pictures">Pictures</option>
+    </select>
+  </div>
+  <label for="level">Level:</label>
+  <select id="level" onchange="nextWord()">
+    <option value="1">Level 1</option>
+    <option value="2">Level 2</option>
+    <option value="3">Level 3</option>
+    <option value="4">Level 4</option>
+    <option value="5">Level 5</option>
+  </select>
+  <img id="pictureHint" src="" style="display:none; max-height:200px; margin-top:20px;" />
+  <div class="scrambled-word" id="scrambledWord"></div>
+  <canvas id="canvas" width="320" height="150"></canvas><br>
+  <button class="button" onclick="clearCanvas()">Clear</button>
+  <button class="button" onclick="sayWord()">Say Word</button>
+  <button class="button" onclick="nextWord()">Next Word</button>
+  <button class="button" onclick="showProgress()">📋 View Completed</button>
+  <button class="button" onclick="resetProgress()">🔄 Reset Progress</button>
+  <div id="celebration">
+    <div class="confetti">🎉🎈🎆</div>
+    <div class="confetti">🎇🎊🎉</div>
+    <button class="button" onclick="nextWord();" style="margin-top: 20px;">Next Word</button>
+  </div>
+  <audio id="cheerSound" src="https://cdn.pixabay.com/audio/2022/03/15/audio_c7c1a5f1bb.mp3"></audio>
+  <script>
+    const wordLevels = {
+      1: ["cat","dog","sun","bed","pen","top","bag","hat","red","bug","big","hop","win","man","run","box","leg","fan","mix","jam","zip","bun","fox","tap","lid","mud","kit","net","cup","web","vet","fin","wig","hen","log","bat","mat","nap","pit","rob","sad","tag","yak","van","zen","rib","mop","owl","dig","pad"],
+      2: ["frog","milk","book","tree","lion","duck","cake","ship","ball","fish","leaf","lamp","nest","ring","snow","rope","star","bike","barn","door","nose","hand","glue","flag","girl","jump","king","kite","sock","desk"],
+      3: ["word1","word2","word3","word4","word5","word6","word7","word8","word9","word10","word11","word12","word13","word14","word15","word16","word17","word18","word19","word20","word21","word22","word23","word24","word25","word26","word27","word28","word29","word30"],
+      4: ["item1","item2","item3","item4","item5","item6","item7","item8","item9","item10","item11","item12","item13","item14","item15","item16","item17","item18","item19","item20","item21","item22","item23","item24","item25","item26","item27","item28","item29","item30"],
+      5: ["thing1","thing2","thing3","thing4","thing5","thing6","thing7","thing8","thing9","thing10","thing11","thing12","thing13","thing14","thing15","thing16","thing17","thing18","thing19","thing20","thing21","thing22","thing23","thing24","thing25","thing26","thing27","thing28","thing29","thing30"]
+    };
+
+    
+
+const imageLevels = {
+  1: {"cat":"https://upload.wikimedia.org/wikipedia/commons/3/3a/Cat03.jpg","dog":"https://upload.wikimedia.org/wikipedia/commons/d/d9/Collage_of_Nine_Dogs.jpg","sun":"https://upload.wikimedia.org/wikipedia/commons/c/c3/Solar_sys8.jpg","bed":"https://upload.wikimedia.org/wikipedia/commons/1/10/Modern_bed.jpg","pen":"https://upload.wikimedia.org/wikipedia/commons/2/26/Ball_pen.jpg","top":"https://upload.wikimedia.org/wikipedia/commons/d/d7/Spinning_top.jpg","bag":"https://upload.wikimedia.org/wikipedia/commons/b/b6/Backpack.jpg","hat":"https://upload.wikimedia.org/wikipedia/commons/f/fd/Fedora_hat.jpg","red":"https://upload.wikimedia.org/wikipedia/commons/1/15/Red.svg","bug":"https://upload.wikimedia.org/wikipedia/commons/3/30/Ladybug_icon.png","bat":"https://upload.wikimedia.org/wikipedia/commons/f/fc/A_bat_hanging_upside_down.jpg","fox":"https://upload.wikimedia.org/wikipedia/commons/1/16/Red_fox.jpg","cow":"https://upload.wikimedia.org/wikipedia/commons/4/4c/Cow_female_black_white.jpg","pig":"https://upload.wikimedia.org/wikipedia/commons/d/d6/Pig_in_a_field.jpg","web":"https://upload.wikimedia.org/wikipedia/commons/3/3f/Spider_web_June_2008-3.jpg","pan":"https://upload.wikimedia.org/wikipedia/commons/f/fc/Cooking_pan.jpg","rug":"https://upload.wikimedia.org/wikipedia/commons/a/aa/Traditional_rug.jpg","zip":"https://upload.wikimedia.org/wikipedia/commons/4/45/Zip_fastener.jpg","jar":"https://upload.wikimedia.org/wikipedia/commons/5/5a/Glass_jar.jpg","toy":"https://upload.wikimedia.org/wikipedia/commons/4/4e/Toy_blocks.jpg","egg":"https://upload.wikimedia.org/wikipedia/commons/8/84/White_chicken_egg.jpg","mud":"https://upload.wikimedia.org/wikipedia/commons/5/53/Mud_puddle.jpg","key":"https://upload.wikimedia.org/wikipedia/commons/4/41/Key_icon.png","owl":"https://upload.wikimedia.org/wikipedia/commons/8/88/Ural_Owl_Northern.jpg","pot":"https://upload.wikimedia.org/wikipedia/commons/7/71/Pot_icon.png","log":"https://upload.wikimedia.org/wikipedia/commons/b/b3/Log_on_snow.jpg","cup":"https://upload.wikimedia.org/wikipedia/commons/3/30/Coffee_cup_icon.png","bus":"https://upload.wikimedia.org/wikipedia/commons/5/5d/London_double-decker_bus.jpg","fan":"https://upload.wikimedia.org/wikipedia/commons/f/fb/Electric_fan.jpg","box":"https://upload.wikimedia.org/wikipedia/commons/5/57/Cardboard_box.jpg"},
+  2: {"frog":"https://upload.wikimedia.org/wikipedia/commons/6/6a/Green_frog_in_grass.jpg","milk":"https://upload.wikimedia.org/wikipedia/commons/1/1e/Milk_glass.jpg","book":"https://upload.wikimedia.org/wikipedia/commons/f/f2/Open_book.jpg","tree":"https://upload.wikimedia.org/wikipedia/commons/a/a4/Tree_at_night.jpg","lion":"https://upload.wikimedia.org/wikipedia/commons/7/73/Lion_waiting_in_Namibia.jpg","duck":"https://upload.wikimedia.org/wikipedia/commons/1/1f/Mallard2.jpg","cake":"https://upload.wikimedia.org/wikipedia/commons/0/0b/Chocolate_cake.jpg","ship":"https://upload.wikimedia.org/wikipedia/commons/5/5e/Cargo_ship.jpg","ball":"https://upload.wikimedia.org/wikipedia/commons/4/4e/Soccer_ball.jpg","fish":"https://upload.wikimedia.org/wikipedia/commons/e/e4/Fish_icon.png","leaf":"https://upload.wikimedia.org/wikipedia/commons/3/3a/Green_leaf_icon.png","lamp":"https://upload.wikimedia.org/wikipedia/commons/0/01/Desk_lamp.jpg","nest":"https://upload.wikimedia.org/wikipedia/commons/f/f3/Bird_nest_with_eggs.jpg","ring":"https://upload.wikimedia.org/wikipedia/commons/3/32/Wedding_ring.jpg","snow":"https://upload.wikimedia.org/wikipedia/commons/1/1e/Snowflake_macro.jpg","rope":"https://upload.wikimedia.org/wikipedia/commons/b/b2/Rope_closeup.jpg","star":"https://upload.wikimedia.org/wikipedia/commons/e/e3/Star_icon.png","bike":"https://upload.wikimedia.org/wikipedia/commons/f/fb/Bike_in_street.jpg","barn":"https://upload.wikimedia.org/wikipedia/commons/e/e8/Red_barn_on_farm.jpg","door":"https://upload.wikimedia.org/wikipedia/commons/6/6e/Wooden_door.jpg","nose":"https://upload.wikimedia.org/wikipedia/commons/8/8f/Nose_icon.png","hand":"https://upload.wikimedia.org/wikipedia/commons/e/ef/Hand_icon.png","glue":"https://upload.wikimedia.org/wikipedia/commons/e/e5/Glue_bottle_icon.png","flag":"https://upload.wikimedia.org/wikipedia/commons/5/5c/Flag_icon.png","girl":"https://upload.wikimedia.org/wikipedia/commons/b/b2/Girl_face_cartoon.jpg","jump":"https://upload.wikimedia.org/wikipedia/commons/5/5e/Jumping_boy.jpg","king":"https://upload.wikimedia.org/wikipedia/commons/4/41/King_icon.png","kite":"https://upload.wikimedia.org/wikipedia/commons/e/e6/Kite_icon.png","sock":"https://upload.wikimedia.org/wikipedia/commons/f/f4/Striped_socks.jpg","desk":"https://upload.wikimedia.org/wikipedia/commons/f/f0/Modern_desk.jpg"}
+};
+
+
+
+    let currentWord = "";
+    let wordList = [];
+    let completedWords = JSON.parse(localStorage.getItem("completedWords") || "{}");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    let drawing = false;
+
+    canvas.addEventListener("pointerdown", e => {
+      drawing = true;
+      ctx.beginPath();
+      ctx.moveTo(e.offsetX, e.offsetY);
+    });
+    canvas.addEventListener("pointermove", e => {
+      if (!drawing) return;
+      ctx.lineTo(e.offsetX, e.offsetY);
+      ctx.stroke();
+    });
+    canvas.addEventListener("pointerup", () => {
+      drawing = false;
+    });
+
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function scramble(word) {
+      let arr = word.split('');
+      let scrambled;
+      do {
+        scrambled = [...arr].sort(() => Math.random() - 0.5);
+      } while (scrambled.join('') === word);
+      return scrambled.join('');
+    }
+
+    function nextWord() {
+      document.getElementById("celebration").style.display = "none";
+      document.getElementById("pictureHint").style.display = "none";
+      const level = parseInt(document.getElementById("level").value);
+      const mode = document.getElementById("mode").value;
+      wordList = (mode === "pictures") ? Object.keys(imageLevels[level] || {}) : wordLevels[level];
+      const done = completedWords[level] || [];
+      const remaining = wordList.filter(w => !done.includes(w));
+      if (remaining.length === 0) {
+        alert("You’ve finished all words in this level! Reset to try again.");
+        currentWord = "---";
+        document.getElementById("scrambledWord").textContent = currentWord;
+        return;
+      }
+      currentWord = remaining[Math.floor(Math.random() * remaining.length)];
+      if (mode === "scrambled") {
+        document.getElementById("scrambledWord").textContent = scramble(currentWord);
+      } else {
+        document.getElementById("scrambledWord").textContent = "";
+        const img = document.getElementById("pictureHint");
+        img.src = imageLevels[level][currentWord];
+        img.style.display = "block";
+      }
+      clearCanvas();
+    }
+
+    function sayWord() {
+      const utterance = new SpeechSynthesisUtterance(currentWord);
+      speechSynthesis.speak(utterance);
+      setTimeout(() => {
+        document.getElementById("cheerSound").play();
+        document.getElementById("celebration").style.display = "flex";
+        const level = document.getElementById("level").value;
+        completedWords[level] = completedWords[level] || [];
+        if (!completedWords[level].includes(currentWord)) {
+          completedWords[level].push(currentWord);
+          localStorage.setItem("completedWords", JSON.stringify(completedWords));
+        }
+      }, 1000);
+    }
+
+    function showProgress() {
+      const level = document.getElementById("level").value;
+      const words = completedWords[level] || [];
+      alert("Completed in Level " + level + ":\n" + (words.join(", ") || "None yet"));
+    }
+
+    function resetProgress() {
+      const level = document.getElementById("level").value;
+      if (confirm("Reset progress for Level " + level + "?")) {
+        completedWords[level] = [];
+        localStorage.setItem("completedWords", JSON.stringify(completedWords));
+        alert("Progress reset.");
+      }
+    }
+
+    nextWord();
+  </script>
+</body>
+</html>
